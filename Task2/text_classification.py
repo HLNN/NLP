@@ -6,7 +6,7 @@ from uitl import *
 
 
 class NFold:
-    def __init__(self, classifier, n=5):
+    def __init__(self, classifier, n=200):
         self.n_fold = KFold(n, shuffle=True, random_state=5)
         self.classifier = classifier
         self.X, self.y = load_data()
@@ -22,7 +22,7 @@ class NFold:
 
 
 if __name__ == '__main__':
-    classifier_name = 'naive_bayes'
+    classifier_name = 'knn'
 
     if classifier_name == 'naive_bayes':
         classifier = NaiveBayes()

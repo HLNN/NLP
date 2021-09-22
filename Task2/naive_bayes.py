@@ -30,7 +30,6 @@ class NaiveBayes:
             raise Exception('you have to fit first before predict')
 
         pred = []
-        N = len(X)
         for x in X:
             words = defaultdict(int)
             for word in x[0]:

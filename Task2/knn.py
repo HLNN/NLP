@@ -1,50 +1,67 @@
-from collections import defaultdict
+from collections import defaultdict, Counter
+import heapq
 import numpy as np
 
 
+class Heap:
+    def __init__(self, n):
+        self.n = n
+        self.count = 0
+        self.q = []
+
+    def insert(self, dist, item):
+        self.count += 1
+        if len(self.q) < self.n:
+            heapq.heappush(self.q, (-dist, self.count, item))
+        else:
+            heapq.heapreplace(self.q, (-dist, self.count, item))
+
+    def get(self):
+        return [item[-1] for item in self.q[::-1]]
+
+    def clean(self):
+        self.q, self.count = [], 0
+
+
 class KNN:
-    def __init__(self):
-        self.k = 0
-        self.prior = None
-        self.words = None
+    def __init__(self, n=20):
+        self.heap = Heap(n)
+        self.X = None
+        self.y = None
+
+    def count(self, x):
+        wc = defaultdict(int)
+        for word in x:
+            wc[word] += 1
+        return wc
+
+    def dist(self, x, vector):
+        res = .0
+        for word in x.keys():
+            res += float(x[word] - vector[word]) ** 2
+        return res ** 0.5
 
     def fix(self, X, y):
-        # Prior
-        self.k = y.max() + 1
-        self.prior = np.array([sum(np.squeeze(y) == i) for i in range(self.k)])
-        # self.prior += np.ones_like(self.prior)
-        self.prior = (self.prior / sum(self.prior)).reshape(1, -1)
-
-        self.words = [defaultdict(int) for _ in range(self.k)]
-        for x, group in zip(X, y):
-            for word in x[0]:
-                self.words[group[0]][word] += 1
+        self.X = np.array([self.count(x[0]) for x in X]).reshape(-1, 1)
+        self.y = y
 
     def predict(self, X):
-        if self.prior is None:
+        if self.X is None:
             raise Exception('you have to fit first before predict')
 
         pred = []
-        N = len(X)
-        for x in X:
+        for i, x in enumerate(X):
+            print(f'\r[{i} / {len(X)}]', end='')
             words = defaultdict(int)
             for word in x[0]:
                 words[word] += 1
 
-            M = len(words)
+            self.heap.clean()
+            for vector, group in zip(self.X, self.y):
+                self.heap.insert(self.dist(words, vector[0]), group[0])
 
-            input_vector = np.ones((1, M+1))
-            category_profile = []
+            min_dist = self.heap.get()
+            pred.append(Counter(min_dist).most_common(1)[0][0])
 
-            for i, (word, count) in enumerate(words.items()):
-                input_vector[0, i] = count
-
-                category_likehood = np.array([self.words[cate][word] for cate in range(self.k)]).reshape(1, -1)
-                category_likehood += 1
-                category_likehood = category_likehood / np.sum(category_likehood, axis=1)
-                category_profile.append(category_likehood)
-            category_profile = np.concatenate(category_profile + [self.prior])
-
-            P = np.dot(input_vector, category_profile)
-            pred.append(P)
-        return np.concatenate(pred).argmax(axis=1).reshape(-1, 1)
+        print()
+        return np.array(pred).reshape(-1, 1)
