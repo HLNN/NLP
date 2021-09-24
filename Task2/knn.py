@@ -24,10 +24,13 @@ class Heap:
 
 
 class KNN:
-    def __init__(self, n=20):
-        self.heap = Heap(n)
+    def __init__(self, k=20):
+        self.heap = Heap(k)
         self.X = None
         self.y = None
+
+    def update_k(self, k):
+        self.heap = Heap(k)
 
     def count(self, x):
         wc = defaultdict(int)
@@ -35,11 +38,50 @@ class KNN:
             wc[word] += 1
         return wc
 
-    def dist(self, x, vector):
+    def dist(self, x, vector, dist_type='euclidean'):
         res = .0
-        for word in x.keys():
-            res += float(x[word] - vector[word]) ** 2
-        return res ** 0.5
+        if dist_type == 'euclidean':
+            for word in x.keys():
+                res += float(x[word] - vector[word]) ** 2
+            return res ** 0.5
+        elif dist_type == 'cos':
+            x1, x2 = np.zeros((len(x),)), np.zeros((len(x),))
+            for i, word in enumerate(x.keys()):
+                x1[i], x2[i] = x[word], vector[word]
+            return np.sum(x1 * x2) / (np.sqrt(np.sum(np.square(x1))) + np.sqrt(np.sum(np.square(x2))))
+        else:
+            assert False, f'Unknown dist type: {dist_type}'
+
+    def choose_k(self, X):
+        if self.X is None:
+            raise Exception('you have to fit first before choose_k')
+
+        pred = []
+        for i, x in enumerate(X):
+            print(f'\r[{i} / {len(X)}]', end='')
+            words = defaultdict(int)
+            for word in x[0]:
+                words[word] += 1
+
+            # Try to speed up predict, but slower
+            # Now use for choose better k
+            input_vector = np.zeros((len(words),))
+            text_vector = np.zeros((len(self.X), len(words)))
+
+            for word_index, (word, count) in enumerate(words.items()):
+                input_vector[word_index] = count
+                for text_index, text in enumerate(self.X):
+                    text_vector[text_index, word_index] = text[0][word]
+
+            # Ignore sqrt
+            dist = np.sum(np.square(text_vector - input_vector), axis=1)
+            dist_pair = [(d, group[0]) for d, group in zip(dist, self.y)]
+            dist_pair.sort(key=lambda d: d[0])
+
+            pred.append(np.array([pair[1] for pair in dist_pair]))
+
+        print()
+        return np.array(pred)
 
     def fix(self, X, y):
         self.X = np.array([self.count(x[0]) for x in X]).reshape(-1, 1)

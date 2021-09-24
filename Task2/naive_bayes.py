@@ -30,7 +30,8 @@ class NaiveBayes:
             raise Exception('you have to fit first before predict')
 
         pred = []
-        for x in X:
+        for i, x in enumerate(X):
+            print(f'\r[{i} / {len(X)}]', end='')
             words = defaultdict(int)
             for word in x[0]:
                 words[word] += 1
@@ -49,6 +50,8 @@ class NaiveBayes:
                 category_profile.append(category_likehood)
             category_profile = np.concatenate(category_profile + [self.prior])
 
+            category_profile = np.log(category_profile)
             P = np.dot(input_vector, category_profile)
             pred.append(P)
+        print()
         return np.concatenate(pred).argmax(axis=1).reshape(-1, 1)
