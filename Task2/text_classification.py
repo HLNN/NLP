@@ -13,30 +13,34 @@ class NFold:
     def __init__(self, classifier, n=5):
         self.n_fold = KFold(n, shuffle=True, random_state=5)
         self.classifier = classifier
-        self.X, self.y = load_data()
+        self.X, self.y = load_data(sw=True, stem='ps')
 
     def run(self):
+        precision = []
         for i, (train_index, test_index) in enumerate(self.n_fold.split(self.X, self.y)):
             X_train, y_train = self.X[train_index], self.y[train_index]
             self.classifier.fix(X_train, y_train)
 
             X_test, y_test = self.X[test_index], self.y[test_index]
             res = self.classifier.predict(X_test)
-            print(i, sum(res == y_test) / len(y_test))
+            p = sum(res == y_test) / len(y_test)
+            precision.append(p)
+            print(i, p)
 
             cm = confusion_matrix(y_test, res)
-            print(cm)
+            # print(cm)
+        print(f'Av precision= {sum(precision) / len(precision)}')
 
 
 class HoldOut:
-    def __init__(self, classifier, train_val_test=(.96, .02, .02), choose_k=False):
+    def __init__(self, classifier, train_val_test=(.99, .005, .005), choose_k=False):
         if sum(train_val_test) != 1.:
             assert False
         self.train_test = train_val_test[0]
         self.val_test = train_val_test[1] / sum(train_val_test[1:])
         self.classifier = classifier
         self.choose_k = choose_k
-        self.X, self.y = load_data()
+        self.X, self.y = load_data(sw=True, stem='ps')
 
     def run(self):
         X_train, X_test, y_train, y_test = train_test_split(self.X, self.y,
@@ -63,6 +67,7 @@ class HoldOut:
                 p.append(P)
             p = np.array(p)
             best_k = np.argmax(p, axis=0)
+            print(p[best_k], p)
             print(f'Choose best k: {best_k}')
             plt.plot(p)
             plt.xlabel('k')

@@ -1,6 +1,7 @@
 from collections import defaultdict, Counter
 import heapq
 import numpy as np
+import math
 
 
 class Heap:
@@ -41,6 +42,7 @@ class KNN:
     def dist(self, x, vector, dist_type='euclidean'):
         res = .0
         if dist_type == 'euclidean':
+            # dist = numpy.linalg.norm(a-b)
             for word in x.keys():
                 res += float(x[word] - vector[word]) ** 2
             return res ** 0.5
@@ -59,7 +61,7 @@ class KNN:
         pred = []
         for i, x in enumerate(X):
             print(f'\r[{i} / {len(X)}]', end='')
-            words = defaultdict(int)
+            words = defaultdict(float)
             for word in x[0]:
                 words[word] += 1
 
@@ -83,9 +85,23 @@ class KNN:
         print()
         return np.array(pred)
 
-    def fix(self, X, y):
+    def fix(self, X, y, tf_idf=False):
         self.X = np.array([self.count(x[0]) for x in X]).reshape(-1, 1)
         self.y = y
+
+        if tf_idf:
+            N = len(self.X)
+            n = defaultdict(float)
+            for x in self.X:
+                for word in x[0].keys():
+                    n[word] += 1
+
+            for key in n.keys():
+                n[key] = math.log(N / n[key])
+
+            for i, x in enumerate(self.X):
+                for word in x[0].keys():
+                    x[0][word] *= n[word]
 
     def predict(self, X):
         if self.X is None:
@@ -94,7 +110,7 @@ class KNN:
         pred = []
         for i, x in enumerate(X):
             print(f'\r[{i} / {len(X)}]', end='')
-            words = defaultdict(int)
+            words = defaultdict(float)
             for word in x[0]:
                 words[word] += 1
 

@@ -2,6 +2,13 @@ import os
 import string
 import re
 import numpy as np
+import nltk
+from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer, LancasterStemmer, SnowballStemmer
+
+
+nltk.download('stopwords')
+stop_word = set(stopwords.words('english'))
 
 
 def download():
@@ -13,39 +20,54 @@ def download():
     os.system('rm tmp.tar.gz tmp.tar')
 
 
-def load_data():
+def load_data(force_disk=False, sw=True, stem='ps'):
     if not os.path.exists('./data'):
         download()
 
-    X, y = [], []
+    file_X = './data/' + ('sw' if sw else '') + '_' + str(stem) + '_X.npy'
+    file_y = './data/' + ('sw' if sw else '') + '_' + str(stem) + '_y.npy'
+    stemmer = {
+        'ps': PorterStemmer(),
+        'ls': LancasterStemmer(),
+        'ss': SnowballStemmer('english'),
+        None: None,
+    }
 
-    for parent, dirnames, filenames in os.walk('./data'):
-        if parent == './data':
-            groups_name = {i: name for i, name in enumerate(dirnames)}
-            groups_id = {name: i for i, name in enumerate(dirnames)}
-            continue
+    if not force_disk and os.path.exists(file_X) and os.path.exists(file_y):
+        print('Loading data from cache!')
+        return np.load(file_X, allow_pickle=True), np.load(file_y, allow_pickle=True)
+    else:
+        print('Loading data from origin file...')
+        X, y = [], []
 
-        group = parent.split('/')[-1]
-        y.append(np.array([groups_id[group]] * len(filenames)))
+        for parent, dirnames, filenames in os.walk('./data'):
+            if parent == './data':
+                groups_name = {i: name for i, name in enumerate(dirnames)}
+                groups_id = {name: i for i, name in enumerate(dirnames)}
+                continue
 
-        x = []
-        for filename in filenames:
-            with open(f'{parent}/{filename}', 'r', encoding='utf-8', errors='ignore') as f:
-                data = f.read()
-                data = preprocess(data)
-                x.append(data)
-        X.append(np.array(x))
+            group = parent.split('/')[-1]
+            y.append(np.array([groups_id[group]] * len(filenames)))
 
-    return np.concatenate(X).reshape(-1, 1), np.concatenate(y).reshape(-1, 1)
+            x = []
+            for filename in filenames:
+                with open(f'{parent}/{filename}', 'r', encoding='utf-8', errors='ignore') as f:
+                    data = f.read()
+                    data = preprocess(data, sw, stemmer.get(stem))
+                    x.append(data)
+            X.append(np.array(x))
+
+        X, y = np.concatenate(X).reshape(-1, 1), np.concatenate(y).reshape(-1, 1)
+        np.save(file_X, X)
+        np.save(file_y, y)
+        return X, y
 
 
-def preprocess(s):
+def preprocess(s, sw, stem):
     # remove_punctuation
     s.translate(str.maketrans('', '', string.punctuation))
-    # stop words
-    # TODO
-    # words stemming
-    # TODO
     s = s.lower()
     s = re.split(r'\W+', s)
+    # stop words and stemming
+    s = [stem.stem(word) if stem else word for word in s if sw and (word not in stop_word)]
     return s
