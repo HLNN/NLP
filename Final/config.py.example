@@ -1,0 +1,4 @@
+class Config:
+    url = "localhost"
+    user = "neo4j"
+    password = "password"
