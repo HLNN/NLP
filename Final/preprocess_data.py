@@ -98,11 +98,11 @@ class Question:
     # 根据问题模板的具体类容，构造cql语句，并查询
     def _query_template(self, quesiton_pos, question_template):
         # 调用问题模板类中的获取答案的方法
-        # try:
-        #     answer = self.questiontemplate.answer(quesiton_pos, question_template)
-        # except:
-        #     answer = "我也还不知道！"
-        answer = self.questiontemplate.answer(quesiton_pos, question_template)
+        try:
+            answer = self.questiontemplate.answer(quesiton_pos, question_template)
+        except:
+            answer = "你问的问题我也还不知道！"
+        # answer = self.questiontemplate.answer(quesiton_pos, question_template)
         return answer
 
 

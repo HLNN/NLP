@@ -46,12 +46,30 @@ graph.run(cypher)
 
 ## 导入关系 actedin  电影是谁参演的 1对多
 print('Load person_to_movie...')
-cypher = """LOAD CSV WITH HEADERS FROM "https://docs.google.com/spreadsheets/d/e/2PACX-1vQAk5ASF0GUEyVAKsHKVQ3DvoBb8nBTY19P0eE_MJm5tYMfbQBJGuLubb3jb2BkmXMTQRiWEHPzvkUY/pub?gid=1626965039&single=true&output=csv
-" AS line   
-match (from:Person{pid:toInteger(line.person_id)}),(to:Movie{mid:toInteger(line.movie_id)})    
-merge (from)-[r:actedin{pid:toInteger(line.person_id),mid:toInteger(line.movie_id)}]->(to)  
+print('Part1...')
+cypher = """LOAD CSV WITH HEADERS FROM "https://docs.google.com/spreadsheets/d/e/2PACX-1vQO9UHxmJ6r-Cv01Gp2NK5npo3M1-M4GN26CjCYP89uLtVxx0JRbePN-W7N4uyJ_sw938CrpR17nDpb/pub?gid=2041541949&single=true&output=csv
+" AS line
+match (from:Person{pid:toInteger(line.person_id)}),(to:Movie{mid:toInteger(line.movie_id)})
+merge (from)-[r:actedin{pid:toInteger(line.person_id),mid:toInteger(line.movie_id)}]->(to)
 """
-graph.run(cypher)
+res = graph.run(cypher, timeout=60000)
+print('Part2..')
+cypher = """LOAD CSV WITH HEADERS FROM "https://docs.google.com/spreadsheets/d/e/2PACX-1vQO9UHxmJ6r-Cv01Gp2NK5npo3M1-M4GN26CjCYP89uLtVxx0JRbePN-W7N4uyJ_sw938CrpR17nDpb/pub?gid=1718766297&single=true&output=csv
+" AS line
+match (from:Person{pid:toInteger(line.person_id)}),(to:Movie{mid:toInteger(line.movie_id)})
+merge (from)-[r:actedin{pid:toInteger(line.person_id),mid:toInteger(line.movie_id)}]->(to)
+"""
+res = graph.run(cypher, timeout=60000)
+print('Part3..')
+cypher = """LOAD CSV WITH HEADERS FROM "https://docs.google.com/spreadsheets/d/e/2PACX-1vQO9UHxmJ6r-Cv01Gp2NK5npo3M1-M4GN26CjCYP89uLtVxx0JRbePN-W7N4uyJ_sw938CrpR17nDpb/pub?gid=1802311097&single=true&output=csv
+" AS line
+match (from:Person{pid:toInteger(line.person_id)}),(to:Movie{mid:toInteger(line.movie_id)})
+merge (from)-[r:actedin{pid:toInteger(line.person_id),mid:toInteger(line.movie_id)}]->(to)
+"""
+res = graph.run(cypher, timeout=60000)
+
+
+
 
 
 # 导入关系  电影是什么类型 == 1对多

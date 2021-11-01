@@ -18,5 +18,5 @@ class Query:
 if __name__ == '__main__':
     SQL = Query()
     cql = 'Match (m:Movie) where m.released > 2000 RETURN m limit 5'
-    result=SQL.run(cql)
+    result = SQL.run(cql)
     print(result)

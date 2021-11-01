@@ -82,7 +82,7 @@ def question():
                 'MsgType': 'text',
             }
 
-            res['Content'] = qusetion.question_process('卧虎藏龙的评分是多少？') or ''
+            res['Content'] = qusetion.question_process(msg.find('Content').text) or ''
 
             return XmlForm.format(**res)
     return 'success'

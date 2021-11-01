@@ -50,6 +50,8 @@ class QuestionTemplate:
 
     # 获取电影名字
     def get_movie_name(self):
+        if 'nm' not in self.question_flag:
+            return None
         # 获取nm在原问题中的下标
         tag_index = self.question_flag.index("nm")
         # 获取电影名称
@@ -58,6 +60,8 @@ class QuestionTemplate:
 
     def get_name(self, type_str):
         name_count = self.question_flag.count(type_str)
+        if name_count == 0:
+            return None
         if name_count == 1:
             # 获取nm在原问题中的下标
             tag_index = self.question_flag.index(type_str)
@@ -75,10 +79,21 @@ class QuestionTemplate:
         x = re.sub(r"\D", "", "".join(self.question_word))
         return x
 
+    def movie_list_by_actor(self, actor):
+        # 查询电影名称
+        cql = f"match(n:Person)-[]->(m:Movie) where n.pname='{actor}' or n.eng_name='{actor}' return m.title"
+        print(cql)
+        answer = self.graph.run(cql)
+        answer_set = set(answer)
+        answer_list = list(answer_set)
+        return answer_list
+
     # 0:nm 评分
     def _q_movie_rating(self):
         # 获取电影名称，这个是在原问题中抽取的
         movie_name = self.get_movie_name()
+        if not movie_name:
+            return '对不起，没有找到该电影的信息。'
         cql = f"match (m:Movie) where m.title='{movie_name}' return m.rating"
         print(cql)
         answer = self.graph.run(cql)[0]
@@ -87,10 +102,13 @@ class QuestionTemplate:
         final_answer = movie_name + "电影评分为" + str(answer) + "分！"
         return final_answer
 
+    # TODO something wrong
     # 1:nm 上映时间
     def _q_movie_releasedate(self):
         movie_name = self.get_movie_name()
-        cql = f"match(m:Movie)-[]->() where m.title='{movie_name}' return m.releasedate"
+        if not movie_name:
+            return '对不起，没有找到该电影的信息。'
+        cql = f"match(m:Movie) where m.title='{movie_name}' return m.releasedate"
         print(cql)
         answer = self.graph.run(cql)[0]
         final_answer = movie_name + "的上映时间是" + str(answer) + "！"
@@ -99,10 +117,14 @@ class QuestionTemplate:
     # 2:nm 类型
     def _q_movie_type(self):
         movie_name = self.get_movie_name()
+        if not movie_name:
+            return '对不起，没有找到该电影的信息。'
         cql = f"match(m:Movie)-[r:is]->(b) where m.title='{movie_name}' return b.name"
         print(cql)
         answer = self.graph.run(cql)
         answer_set = set(answer)
+        if not answer_set:
+            return '对不起，不知道该电影的类型。'
         answer_list = list(answer_set)
         answer = "、".join(answer_list)
         final_answer = movie_name + "是" + str(answer) + "等类型的电影！"
@@ -111,7 +133,9 @@ class QuestionTemplate:
     # 3:nm 简介
     def _q_movie_introduction(self):
         movie_name = self.get_movie_name()
-        cql = f"match(m:Movie)-[]->() where m.title='{movie_name}' return m.introduction"
+        if not movie_name:
+            return '对不起，没有找到该电影的信息。'
+        cql = f"match(m:Movie) where m.title='{movie_name}' return m.introduction"
         print(cql)
         answer = self.graph.run(cql)[0]
         final_answer = movie_name + "主要讲述了" + str(answer) + "！"
@@ -120,10 +144,14 @@ class QuestionTemplate:
     # 4:nm 演员列表
     def _q_movie_actor_list(self):
         movie_name = self.get_movie_name()
-        cql = f"match(n:Person)-[r:actedin]->(m:Movie) where m.title='{movie_name}' return n.name"
+        if not movie_name:
+            return '对不起，没有找到该电影的信息。'
+        cql = f"match(n:Person)-[r:actedin]->(m:Movie) where m.title='{movie_name}' return case when n.pname is null then n.eng_name else n.pname end as result"
         print(cql)
         answer = self.graph.run(cql)
         answer_set = set(answer)
+        if not answer_set:
+            return '对不起，不知道该电影的演员列表。'
         answer_list = list(answer_set)
         answer = "、".join(answer_list)
         final_answer = movie_name + "由" + str(answer) + "等演员主演！"
@@ -131,19 +159,25 @@ class QuestionTemplate:
 
     # 5:nnt 介绍
     def _q_actor_info(self):
-        actor_name = self.get_name("nr")
-        cql = f"match(n:Person)-[]->() where n.name='{actor_name}' return n.biography"
+        actor_name = self.get_name("nnt")
+        if not actor_name:
+            return '对不起，没有找到该演员的信息。'
+        cql = f"match(n:Person) where n.pname='{actor_name}' or n.eng_name='{actor_name}' return n.biography"
         print(cql)
-        answer = self.graph.run(cql)[0]
-        final_answer = answer
+        answer = self.graph.run(cql)
+        if not answer or not answer[0]:
+            return '对不起，没有找到该演员的信息。'
+        final_answer = answer[0]
         return final_answer
 
     # 6:nnt ng 电影作品
     def _q_actor_act_type_movie(self):
-        actor_name = self.get_name("nr")
+        actor_name = self.get_name("nnt")
         type = self.get_name("ng")
+        if not actor_name or not type:
+            return '对不起，没有找到该演员的信息。'
         # 查询电影名称
-        cql = f"match(n:Person)-[]->(m:Movie) where n.name='{actor_name}' return m.title"
+        cql = f"match(n:Person)-[]->(m:Movie) where n.pname='{actor_name}' or n.eng_name='{actor_name}' return m.title"
         print(cql)
         movie_name_list = list(set(self.graph.run(cql)))
         # 查询类型
@@ -168,27 +202,30 @@ class QuestionTemplate:
 
     # 7:nnt 电影作品
     def _q_actor_act_movie_list(self):
-        def movie_list_by_actor(actor):
-            # 查询电影名称
-            cql = f"match(n:Person)-[]->(m:Movie) where n.name='{actor}' return m.title"
-            print(cql)
-            answer = self.graph.run(cql)
-            answer_set = set(answer)
-            answer_list = list(answer_set)
-            return answer_list
-        actor_name = self.get_name("nr")
-        answer_list = movie_list_by_actor(actor_name)
+        actor_name = self.get_name("nnt")
+        if not actor_name:
+            return '对不起，没有找到该演员的信息。'
+        answer_list = self.movie_list_by_actor(actor_name)
+        if len(answer_list) > 100:
+            answer_list = answer_list[:100]
         answer = "、".join(answer_list)
         final_answer = actor_name + "演过" + str(answer) + "等电影！"
         return final_answer
 
     # 8:nnt 参演评分 大于 x
     def _q_movie_rating_bigger(self):
-        actor_name = self.get_name("nr")
+        actor_name = self.get_name("nnt")
+        if not actor_name:
+            return '对不起，没有找到该演员的信息。'
         x = self.get_num_x()
-        cql = f"match(n:Person)-[r:actedin]->(m:Movie) where n.name='{actor_name}' and m.rating>={x} return m.title"
+        if not (x.isdigit() and 0 <= int(x) <= 10):
+            return '请输入一个0-10之间的整数评分！'
+        x = int(x)
+        cql = f"match(n:Person)-[r:actedin]->(m:Movie) where n.pname='{actor_name}' and m.rating>={x} return m.title"
         print(cql)
         answer = self.graph.run(cql)
+        if len(answer) > 100:
+            answer = answer[:100]
         answer = "、".join(answer)
         answer = str(answer).strip()
         final_answer = actor_name + "演的电影评分大于" + x + "分的有" + answer + "等！"
@@ -196,11 +233,16 @@ class QuestionTemplate:
 
     # 9:nnt 参演评分 小于 x
     def _q_movie_rating_smaller(self):
-        actor_name = self.get_name("nr")
+        actor_name = self.get_name("nnt")
         x = self.get_num_x()
-        cql = f"match(n:Person)-[r:actedin]->(m:Movie) where n.name='{actor_name}' and m.rating<{x} return m.title"
+        if not (x.isdigit() and 0 <= int(x) <= 10):
+            return '请输入一个0-10之间的整数评分！'
+        x = int(x)
+        cql = f"match(n:Person)-[r:actedin]->(m:Movie) where n.pname='{actor_name}' and m.rating<{x} return m.title"
         print(cql)
         answer = self.graph.run(cql)
+        if len(answer) > 100:
+            answer = answer[:100]
         answer = "、".join(answer)
         answer = str(answer).strip()
         final_answer = actor_name + "演的电影评分小于" + x + "分的有" + answer + "等！"
@@ -208,9 +250,11 @@ class QuestionTemplate:
 
     # 10
     def _q_actor_movie_type(self):
-        actor_name = self.get_name("nr")
+        actor_name = self.get_name("nnt")
+        if not actor_name:
+            return '对不起，没有找到该演员的信息。'
         # 查询电影名称
-        cql = "match(n:Person)-[]->(m:Movie) where n.name='{actor_name}' return m.title"
+        cql = f"match(n:Person)-[]->(m:Movie) where n.pname='{actor_name}' return m.title"
         print(cql)
         movie_name_list = list(set(self.graph.run(cql)))
         # 查询类型
@@ -234,21 +278,27 @@ class QuestionTemplate:
     # 11
     def _q_cooperation_movie_list(self):
         # 获取演员名字
-        actor_name_list = self.get_name("nr")
+        actor_name_list = self.get_name("nnt")
+        if not actor_name_list:
+            return '对不起，没有找到该演员的信息。'
         movie_list = {}
         for i, actor_name in enumerate(actor_name_list):
-            answer_list = self._q_actorname_movie_list(actor_name)
+            answer_list = self.movie_list_by_actor(actor_name)
             movie_list[i] = answer_list
         result_list = list(set(movie_list[0]).intersection(set(movie_list[1])))
         print(result_list)
+        if not result_list:
+            return '没有找到他们合作的电影！'
         answer = "、".join(result_list)
         final_answer = actor_name_list[0] + "和" + actor_name_list[1] + "一起演过的电影主要是" + answer + "!"
         return final_answer
 
     # 12
     def _q_actor_movie_num(self):
-        actor_name = self.get_name("nr")
-        answer_list = self._q_actorname_movie_list(actor_name)
+        actor_name = self.get_name("nnt")
+        if not actor_name:
+            return '对不起，没有找到该演员的信息。'
+        answer_list = self.movie_list_by_actor(actor_name)
         movie_num = len(set(answer_list))
         answer = movie_num
         final_answer = actor_name + "演过" + str(answer) + "部电影!"
@@ -256,9 +306,13 @@ class QuestionTemplate:
 
     # 13
     def _q_actor_birthday(self):
-        actor_name = self.get_name("nr")
-        cql = f"match(n:Person)-[]->() where n.name='{actor_name}' return n.birth"
+        actor_name = self.get_name("nnt")
+        if not actor_name:
+            return '对不起，没有找到该演员的信息。'
+        cql = f"match(n:Person)-[]->() where n.pname='{actor_name}' or n.eng_name='{actor_name}' return n.birth"
         print(cql)
+
+
         answer = self.graph.run(cql)[0]
         final_answer = actor_name + "的生日是" + answer + "。"
         return final_answer
