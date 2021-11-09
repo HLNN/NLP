@@ -1,11 +1,15 @@
-from py2neo import Graph
+import os
 
-from config import Config
+from py2neo import Graph
 
 
 class Query:
     def __init__(self):
-        self.graph = Graph(Config.url, user=Config.user, password=Config.password)
+        if os.path.exists('config.py'):
+            from config import Config
+            self.graph = Graph(Config.url, user=Config.user, password=Config.password)
+        else:
+            self.graph = Graph("http://localhost:7474")
 
     def run(self, cql):
         result = []

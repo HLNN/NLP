@@ -1,11 +1,15 @@
+import os
+
 from py2neo import Graph, Node, Relationship
 
 
 # 链接neo4j
 print("Connect to database...")
-graph = Graph(
-    "http://3.234.154.25:7474", user="neo4j", password="saddle-clouds-catchers"
-)
+if os.path.exists('config.py'):
+    from config import Config
+    graph = Graph(Config.url, user=Config.user, password=Config.password)
+else:
+    graph = Graph("http://localhost:7474")
 
 
 # 清空数据库
